@@ -48,6 +48,7 @@ def start_vm_openstack(num_vms):
 	for count in range(0,6):
 		reservations=ec2.run_instances(ami,instance_type='m1.tiny',max_count=1) 
 		print "Launching vm ",count," of 256" 
+
 	## create a chain (ie. Make in iterator that returns elements fromt the first
 	## iterable untils it is exhaused, then proceeds to the next iterable
 	chain = itertools.chain.from_iterable
