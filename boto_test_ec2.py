@@ -11,7 +11,6 @@ def start_vm_openstack(num_vms):
 		Set the EC2_ACCESS_KEY and EC2_SECRET_KEY environment variables
 		num_vms:  Number of vms to spawn
 	Returns:
-				
 	"""
 	access_key = os.getenv("EC2_ACCESS_KEY")
 	secret_key = os.getenv("EC2_SECRET_KEY")
@@ -33,10 +32,7 @@ def start_vm_openstack(num_vms):
 		ec2 = boto.connect_ec2(aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
                 is_secure=False,
-                region=region,
-                port=8773,
-                path="/services/Cloud")
-
+                region=region)
 	except:
 		print 'Error connection to openstack' 
 		return 
@@ -45,10 +41,9 @@ def start_vm_openstack(num_vms):
         ami = "ami-baba68d3"
 	
 	## start a bunch of vms
-	for count in range(0,6):
-		reservations=ec2.run_instances(ami,instance_type='m1.tiny',max_count=1) 
+	for count in range(0,1):
+		reservations=ec2.run_instances(ami,instance_type='t1.micro',max_count=1) 
 		print "Launching vm ",count," of 256" 
-
 	## create a chain (ie. Make in iterator that returns elements fromt the first
 	## iterable untils it is exhaused, then proceeds to the next iterable
 	chain = itertools.chain.from_iterable
@@ -87,3 +82,5 @@ def stop_vm_openstack(status_dict):
 		print 'Error terminating VMs'
 		return -1
 	return 0
+
+start_vm_openstack(1); 
