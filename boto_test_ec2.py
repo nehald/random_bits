@@ -46,6 +46,7 @@ def start_vm_openstack(num_vms):
 		print "Launching vm ",count," of 256" 
 	## create a chain (ie. Make in iterator that returns elements fromt the first
 	## iterable untils it is exhaused, then proceeds to the next iterable
+	instances = ec2.get_all_instances()	
 	chain = itertools.chain.from_iterable
 	existing_instances = list(chain([res.instances for res in ec2.get_all_instances()]))
 	status = [e.update() for e in existing_instances]
@@ -58,7 +59,8 @@ def start_vm_openstack(num_vms):
 		print [(i,status_dict[i]) for i in status_dict.keys() if status_dict[i] != 'terminated']	
 		print 'Still pending'
 		time.sleep(3)
-	
+
+
 	return status_dict; 	
 
 
@@ -82,5 +84,3 @@ def stop_vm_openstack(status_dict):
 		print 'Error terminating VMs'
 		return -1
 	return 0
-
-start_vm_openstack(1); 
