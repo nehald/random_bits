@@ -101,55 +101,63 @@ class SensorHandler(tornado.web.RequestHandler):
         q_info=self.cl.get_queue_bindings('/',self.queue)
         if q_info != None: 
             if len([q for q in range(0,len(q_info)) if self.exchange in q_info[q]['source']]) ==0:
-                self.write("No exchange/queue pair found\n")
+                response={"Response":"No exchange/queue pair"}
+                self.write(json.dumps(response))
                 self.finish()
                 return 0;  
         else:
-                self.write("No queue by that name found\n")
+                self.write("Response: No queue by that name found\n")
                 self.finish()
                 return 0;
         self.data = request.body
         self.pika_client = self.application.settings.get('pika_client')
         self.mq_ch = self.pika_client.channel
         self.corr_id = str(uuid.uuid4())
+        
+       #
+        if no_rpc:
+            props = pika.BasicProperties(content_type='text/plain', 
+        
         # Currently, one callback queue is made per request. Is mapping
         # responses in one queue to multiple RequestHandlers with a
         # correlation ID a better approach or not?
         self.callback_queue_name = "{0}-{1}-{2}".format(platform.node(), os.getpid(),
                                                id(self))
         # Trying to bind to the nameless exchange breaks the program.
-        callback = self.on_queue_bind
+        callback = self.on_queue_bind_rpc
         try:
             self.mq_ch.queue_declare(exclusive=True, queue=self.callback_queue_name,
                                      callback=callback, auto_delete=False)
         except:
             log.info("Unable to declare the return clue\n")
 
-    def on_queue_bind(self, frame):
+    def on_queue_bind_rpc(self, frame):
         print 'Queue Bound. Issuing Basic Consume.'
-        #self.mq_ch.basic_consume(consumer_callback=self.on_rpc_response,
-        #                         queue=self.callback_queue_name, no_ack=True)
+        self.mq_ch.basic_consume(consumer_callback=self.on_rpc_response,
+                                 queue=self.callback_queue_name, no_ack=True)
 
         # After binding and listening to the queue with basic_consume,
         # publish the message.
-        #props = pika.BasicProperties(content_type='text/plain',
-        #                             delivery_mode=1,
-        #                             correlation_id=self.corr_id,
-        #                             reply_to=self.callback_queue_name)
+        props = pika.BasicProperties(content_type='text/plain',
+                                     delivery_mode=1,
+                                     correlation_id=self.corr_id,
+                                     reply_to=self.callback_queue_name)
         
-        props = pika.BasicProperties(content_type = 'text/plain', delivery_mode=1);  
         
         try:
         ### publish to the routing_key
             is_published=self.mq_ch.basic_publish(exchange=self.exchange, routing_key=self.queue,
-                                     body=self.data, properties=props,
-                                     mandatory=True) 
+                                     body=self.data, properties=props)
+
+#           self.write("push to rabbitmq complete {0}")
+            self.finish()
             print 'published' 
         except:
             print 'Error publishing data'
             pass
 
     def on_rpc_response(self, channel, method, header, body):
+        print 'rpc response' 
         lg = "RPC response: delivery tag #{0} | Body: {1}"
         #self.L.logger.critical(lg.format(method.delivery_tag,body)); 
         if header.correlation_id != self.corr_id:
@@ -160,10 +168,10 @@ class SensorHandler(tornado.web.RequestHandler):
         self.L.logger.critical(delete_q)
         self.mq_ch.queue_delete(queue=self.callback_queue_name)
         # After the RPC response has been received, write to the browser.
-        self.write(HTML_HEADER)
-        self.write("push to rabbitmq complete {0}".format(body))
-        self.write(HTML_FOOTER)
-        self.finish()
+        #self.write(HTML_HEADER)
+        #self.write("push to rabbitmq complete {0}".format(body))
+        #self.write(HTML_FOOTER)
+        #self.finish()
 
 
 class PikaClient(object):
