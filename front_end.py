@@ -25,7 +25,8 @@ import pdb
 from pika.adapters.tornado_connection import TornadoConnection
 from routes import Mapper
 from pyrabbit.api import Client
-
+import string
+import random
 ## original author of the tornado rpc code
 __author__ = 'Brian McFadden'
 __email__ = 'brimcfadden+gist.github.com@gmail.com'
@@ -40,16 +41,17 @@ class MainHandler(tornado.web.RequestHandler):
     def initialize(self,database):
         self.mapper=Mapper() 
         self.mapper.connect(None,"/{action_type}/{queue}") 
+    def test(self):
+        N = 2048 
+        return(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N)))
     def get (self):
-        print 'hello Uma from eggdroplabs.com' 
         self.write('Hello Uma webpage ')        
-        results = self.mapper.match(self.request.uri);
-        #self.write(str(uuid.uuid4()))        
-        print results 
+        self.write(str(uuid.uuid4()))        
+        self.write(self.test())        
+       # results = self.mapper.match(self.request.uri);
+        self.finish() 
     def post(self):
-        self.write('Hello post webpage ') 
-        print self.request
-
+        self.finish()
 
 class SensorHandler(tornado.web.RequestHandler):
     """Uses an aysnchronous call to an RPC server to calculate fib(x).
@@ -65,32 +67,22 @@ class SensorHandler(tornado.web.RequestHandler):
    
     @tornado.web.asynchronous
     def get(self, number=''):
-        self.L = log_class.Logger() 
         request = self.request
-        self.L.logger.critical(request); 
         self.data = request.uri
         ## determine whether the q exists 
         result = self.mapper.match(request.uri)
-        self.queue = result['queue']
-        self.number = number
-        self.pika_client = self.application.settings.get('pika_client')
-        self.mq_ch = self.pika_client.channel
-        self.corr_id = str(uuid.uuid4())
-
-        # Currently, one callback queue is made per request. Is mapping
-        # responses in one queue to multiple RequestHandlers with a
-        # correlation ID a better approach or not?
-        self.callback_queue_name = "{0}-{1}-{2}".format(platform.node(), os.getpid(),
-                                               id(self))
-        # Trying to bind to the nameless exchange breaks the program.
-        callback = self.on_queue_bind
-        try:
-            self.mq_ch.queue_declare(exclusive=True, queue=self.callback_queue_name,
-                                 callback=callback, auto_delete=False)
+        try: 
+        #    self.queue = result['queue']
+            self.number = number
+            self.pika_client = self.application.settings.get('pika_client')
+            self.mq_ch = self.pika_client.channel
+            self.corr_id = str(uuid.uuid4())
+            self.finish()
         except:
-            log.info("Unable to declare the return clue\n")
+            self.finish() 
+            pass
 
-    @tornado.web.asynchronous
+#    @tornado.web.asynchronous
     def post(self, number=''):
         request = self.request
         self.L = log_class.Logger() 
@@ -101,12 +93,18 @@ class SensorHandler(tornado.web.RequestHandler):
         except:
             response = {"Response":"Exchange not found"}
             self.write(json.dumps(response))
-            self.finish()
+            #self.finish()
 
-        vhost = "/"; 
-        exchange_info = self.cl.get_exchange(vhost,self.exchange); 
-        exchange_type = exchange_info['type'] 
-        
+        try:
+            vhost = "/"; 
+            exchange_info = self.cl.get_exchange(vhost,self.exchange); 
+            exchange_type = exchange_info['type'] 
+        except:
+            self.write("No exchange found\n")
+        #    self.finish()
+            return 0; 
+
+
         if exchange_type == 'direct': 
             try: 
                 self.queue = result['queue']
@@ -117,27 +115,27 @@ class SensorHandler(tornado.web.RequestHandler):
                     if len([q for q in range(0,len(q_info)) if self.exchange in q_info[q]['source']]) ==0:
                         response={"Response":"No exchange-queue pair"}
                         self.write(json.dumps(response))
-                        self.finish()
+                        #self.finish()
                         return 0;  
                 else:
                     response={"Response":"Queue not found"}
                     self.write(json.dumps(response))
-                    self.finish()
+                    #self.finish()
                     return 0;
             except:
-                    pass;
+                    self.write("Response:  No queue argument found\n")
+                    #self.finish()
+                    return 0; 
          
-        
         self.data = request.body
         self.pika_client = self.application.settings.get('pika_client')
         self.mq_ch = self.pika_client.channel
         self.corr_id = str(uuid.uuid4())
-        
         try:
             pub=self.mq_ch.basic_publish(exchange=self.exchange, routing_key=self.queue,body=self.data)
             response={"Response":"Message sent"}
             self.write(json.dumps(response))
-            self.finish()
+            #self.finish()
         except:
                 pass; 
 
@@ -211,7 +209,7 @@ def main():
     try:
         port = int(sys.argv[1])  # $ python tornadoweb_pika.py 80
     except:
-        port = 80
+        port = 8000 
     application.listen(port)
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.add_timeout(time.time() + .1, pika_client.connect)
