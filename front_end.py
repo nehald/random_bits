@@ -34,8 +34,8 @@ __email__ = 'brimcfadden+gist.github.com@gmail.com'
 ##  I modified things sig
 HTML_HEADER = '<html><head><title>Tornado/Pika RPC</title></head><body>'
 HTML_FOOTER = '</body></html>'
-
 EXCHANGE = 'central'
+g_port = 0; 
 
 class MainHandler(tornado.web.RequestHandler):
     def initialize(self,database):
@@ -45,6 +45,8 @@ class MainHandler(tornado.web.RequestHandler):
         N = 2048 
         return(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N)))
     def get (self):
+        self.write(str(g_port)) 
+        self.write("\n")
         self.write('Hello Uma webpage ')        
         self.write(str(uuid.uuid4()))        
         self.write(self.test())        
@@ -194,7 +196,7 @@ def main():
     database['g'] = 'f'
     database['gg'] = 'ff'
     database['ggg'] = 'gff'
-
+    global g_port;
     
     application = tornado.web.Application(
     [(r'/sensor/.*', SensorHandler,dict(database=database)),(r'/.*',MainHandler,dict(database=database))],
@@ -210,6 +212,7 @@ def main():
         port = int(sys.argv[1])  # $ python tornadoweb_pika.py 80
     except:
         port = 8000 
+    g_port = port
     application.listen(port)
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.add_timeout(time.time() + .1, pika_client.connect)
