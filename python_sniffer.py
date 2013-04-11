@@ -4,13 +4,18 @@ import json
 import time
 import pika
 import sys
-
+from hotqueue import HotQueue
+import collections
 connection = pika.BlockingConnection(pika.ConnectionParameters(host = 'localhost'))
 channel = connection.channel()
 #payload = {'json_payload': data_json}
 headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-p = pycap.capture.capture(device="lo")
-print 'f'
+p = pycap.capture.capture(device="eth0")
+count = 0; 
+queue = HotQueue("myqueue", host="localhost", port=6379, db=0)
+q=collections.deque(maxlen=100)
+
+count = 0; 
 while (p):
     try: 
         packet = p.next()
@@ -22,9 +27,11 @@ while (p):
         data['dstp'] = int(packet[2].destinationport)
         data['srcp'] = int(packet[2].sourceport)
         payload = json.dumps(data)
-        print payload
-#        requests.post("http://eggdroplabs.com:8000/sensor/ex1/",data=payload,headers=headers)
-        channel.basic_publish(exchange="ex1",routing_key='',body=payload)
+	print payload 
+	count = count +1
+	queue.put(payload)	
+       # channel.basic_publish(exchange="ex1",routing_key='',body=payload)
+	#r = requests.post("http://54.241.14.229/sensor/ex1/", data=payload,headers=headers)
     except:
         pass
 #while (p):
