@@ -20,6 +20,7 @@ while (p):
     try: 
         packet = p.next()
         data={}
+	data['time'] = packet[4]
         data['src'] = packet[1].source
         data['dst'] = packet[1].destination
         data['length'] = int(packet[1].length)
@@ -29,9 +30,9 @@ while (p):
         payload = json.dumps(data)
 	print payload 
 	count = count +1
-	queue.put(payload)	
-       # channel.basic_publish(exchange="ex1",routing_key='',body=payload)
-	#r = requests.post("http://54.241.14.229/sensor/ex1/", data=payload,headers=headers)
+	#queue.put(payload)	
+        channel.basic_publish(exchange="haystack",routing_key='',body=payload)
+	#r = requests.post("http://54.241.14.229/sensor/haystack/", data=payload,headers=headers)
     except:
         pass
 #while (p):

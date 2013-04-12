@@ -9,19 +9,20 @@ class rabbitmonitor(threading.Thread):
 		self.scheduler = sched.scheduler(time.time,time.sleep)
 		self.cl = Client("localhost:55672","guest","guest")
 
-	def print_time(self): print "From print_time", time.time()
-
 	def rabbit_stats(self):
 		exchanges = self.cl.get_exchanges()	
-		for e in exchanges:
-			try:
-				print e['message_stats_out'] 
-				print e['message_stats_in'] 
-			except:
-				pass; 
-	
+		queues = self.cl.get_queues()
+		binding = self.cl.get_bindings()
+		for b in binding:
+			source = b['source']
+			dest = b['destination']
+			if source == '':
+				source = "None"	
+			print source,dest
+		print exchanges
+		print queues
 	def run(self):
-		self.scheduler.enter(5,1,self.rabbit_stats,());	
+		self.scheduler.enter(2,1,self.rabbit_stats,());	
 		self.scheduler.run()
 		self.run()
 
