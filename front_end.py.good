@@ -69,24 +69,59 @@ class SensorHandler(tornado.web.RequestHandler):
     def post(self, number=''):
 	global cl
         request = self.request
+        self.queue =''
+        result = self.mapper.match(request.uri)
+        try: 
+            self.exchange= result['exchange']
+        except:
+            response = {"Response":"Exchange not found"}
+            self.write(json.dumps(response))
+            self.finish()
+        try:
+            vhost = "/"; 
+            exchange_info = cl.get_exchange(vhost,self.exchange); 
+	    exchange_type = exchange_info['type'] 
+        except:
+            self.write("No exchange found\n")
+            self.finish()
+            return 0; 
+
+
+        if exchange_type == 'direct': 
+            try: 
+                self.queue = result['queue']
+                ## determine whether the queue exists or not 
+                ## whether its bound to the right exchange (e.g. can we get ther from here)
+                q_info=self.cl.get_queue_bindings(vhosts,self.queue)
+                if q_info != None: 
+                    if len([q for q in range(0,len(q_info)) if self.exchange in q_info[q]['source']]) ==0:
+                        response={"Response":"No exchange-queue pair"}
+                        self.write(json.dumps(response))
+                        self.finish()
+                        return 0;  
+                else:
+                    response={"Response":"Queue not found"}
+                    self.write(json.dumps(response))
+                    #self.finish()
+                    return 0;
+            except:
+                    self.write("Response:  No queue argument found\n")
+                    self.finish()
+                    return 0; 
+         
         self.data = request.body
-       	result = self.mapper.match(request.uri) 
-	self.queue =''
-	try:
-		self.queue = result['queue']
-	except:
-		pass; 	
-	self.pika_client = self.application.settings.get('pika_client')
+        self.pika_client = self.application.settings.get('pika_client')
         self.mq_ch = self.pika_client.channel
         self.corr_id = str(uuid.uuid4())
-	self.exchange= result['exchange']
         try:
-	    pub=self.mq_ch.basic_publish(exchange=self.exchange, routing_key=self.queue,body=self.data)
+            pub=self.mq_ch.basic_publish(exchange=self.exchange, routing_key=self.queue,body=self.data)
             response={"Response":"Message sent"}
             self.write(json.dumps(response))
+            self.finish()
         except:
-	    response={"Reponse":"Error publishing msg to exchange"}
-            self.write(json.dumps(response))
+            self.finish()    
+	    pass; 
+
 
 
 class PikaClient(object):

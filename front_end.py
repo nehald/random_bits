@@ -37,10 +37,8 @@ HTML_FOOTER = '</body></html>'
 EXCHANGE = 'central'
 g_port = 0; 
 
+cl = Client('localhost:55672', 'guest', 'guest')
 class MainHandler(tornado.web.RequestHandler):
-    def initialize(self,database):
-        self.mapper=Mapper() 
-        self.mapper.connect(None,"/{action_type}/{queue}") 
     def test(self):
         N = 2048 
         return(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N)))
@@ -50,98 +48,17 @@ class MainHandler(tornado.web.RequestHandler):
         self.write('Hello Uma webpage ')        
         self.write(str(uuid.uuid4()))        
         self.write(self.test())        
-       # results = self.mapper.match(self.request.uri);
-        self.finish() 
     def post(self):
-        self.finish()
+	self.write("fdsfa")
 
 class SensorHandler(tornado.web.RequestHandler):
     """Uses an aysnchronous call to an RPC server to calculate fib(x).
     As with examples of asynchronous HTTP calls, this request will not finish
     until the remote response is received."""
-    def initialize(self,database):
-        self.mapper=Mapper() 
-        self.mapper.connect(None,"/{action}/{exchange}/{queue}") 
-        self.mapper.connect(None,"/{action}/{exchange}/") 
-        ##  need to know something about the exchanges and queues in the 
-        ## broker
-        self.cl = Client('localhost:55672', 'guest', 'guest')
-   
-    @tornado.web.asynchronous
-    def get(self, number=''):
-        request = self.request
-        self.data = request.uri
-        ## determine whether the q exists 
-        result = self.mapper.match(request.uri)
-        try: 
-        #    self.queue = result['queue']
-            self.number = number
-            self.pika_client = self.application.settings.get('pika_client')
-            self.mq_ch = self.pika_client.channel
-            self.corr_id = str(uuid.uuid4())
-            self.finish()
-        except:
-            self.finish() 
-            pass
-
-#    @tornado.web.asynchronous
+    def get(self):
+	self.write("fdsaf") 
     def post(self, number=''):
-        request = self.request
-        self.L = log_class.Logger() 
-        self.queue =''
-        result = self.mapper.match(request.uri)
-        try: 
-            self.exchange= result['exchange']
-        except:
-            response = {"Response":"Exchange not found"}
-            self.write(json.dumps(response))
-            #self.finish()
-
-        try:
-            vhost = "/"; 
-            exchange_info = self.cl.get_exchange(vhost,self.exchange); 
-            exchange_type = exchange_info['type'] 
-        except:
-            self.write("No exchange found\n")
-        #    self.finish()
-            return 0; 
-
-
-        if exchange_type == 'direct': 
-            try: 
-                self.queue = result['queue']
-                ## determine whether the queue exists or not 
-                ## whether its bound to the right exchange (e.g. can we get ther from here)
-                q_info=self.cl.get_queue_bindings(vhosts,self.queue)
-                if q_info != None: 
-                    if len([q for q in range(0,len(q_info)) if self.exchange in q_info[q]['source']]) ==0:
-                        response={"Response":"No exchange-queue pair"}
-                        self.write(json.dumps(response))
-                        #self.finish()
-                        return 0;  
-                else:
-                    response={"Response":"Queue not found"}
-                    self.write(json.dumps(response))
-                    #self.finish()
-                    return 0;
-            except:
-                    self.write("Response:  No queue argument found\n")
-                    #self.finish()
-                    return 0; 
-         
-        self.data = request.body
-        self.pika_client = self.application.settings.get('pika_client')
-        self.mq_ch = self.pika_client.channel
-        self.corr_id = str(uuid.uuid4())
-        try:
-            pub=self.mq_ch.basic_publish(exchange=self.exchange, routing_key=self.queue,body=self.data)
-            response={"Response":"Message sent"}
-            self.write(json.dumps(response))
-            #self.finish()
-        except:
-                pass; 
-
-
+	self.write("fdsfsa")
 
 class PikaClient(object):
     """A modified class as described in pika's demo_tornado.py.
@@ -192,22 +109,9 @@ class PikaClient(object):
 
 def main():
     pika_client = PikaClient()
-    database={}
-    database['g'] = 'f'
-    database['gg'] = 'ff'
-    database['ggg'] = 'gff'
-    global g_port;
-    
     application = tornado.web.Application(
-    [(r'/sensor/.*', SensorHandler,dict(database=database)),(r'/.*',MainHandler,dict(database=database))],
-#        [(r'/index.html',MainHandler)],
-#        [(r'/tom/*',SensorHandler),(r'/index.html',MainHandler)],
-#        **{'pika_client': pika_client, 'debug': True}
-
-        #     **{'pika_client': pika_client, 'debug': True}
-        #     [(r'/tom/*', Fib)],
-             **{'pika_client': pika_client, 'debug': True}
-    )
+    	[(r'/sensor/.*', SensorHandler),(r'/',MainHandler)],
+	**{'pika_client': pika_client})
     try:
         port = int(sys.argv[1])  # $ python tornadoweb_pika.py 80
     except:
