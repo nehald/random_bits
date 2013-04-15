@@ -65,7 +65,7 @@ class SensorHandler(tornado.web.RequestHandler):
         self.mapper.connect(None,"/{action}/{exchange}/") 
    
     def get(self):
- 	return 'get'
+	self.write("get")
  
     def post(self, number=''):
         request = self.request

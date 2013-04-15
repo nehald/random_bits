@@ -19,7 +19,10 @@ class rabbitmonitor(threading.Thread):
 			if source == '':
 				source = "None"	
 			print source,dest
-		print exchanges
+		print '==='
+		for i in exchanges:
+			print i
+		print '***'
 		print queues
 	def run(self):
 		self.scheduler.enter(2,1,self.rabbit_stats,());	
