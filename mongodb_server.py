@@ -59,13 +59,6 @@ class MongoDB_server(dataChannel.dataChannel):
         """ the real meat of the code. handle_delivery is activated
             when a message arrives @ the message queue"""
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-        try:
-            service_state = header_frame.headers['service_metadata']
-            # find the state associated with this particular service (not
-            # queue)
-            self.set_state(service_state[self.id])
-        except:
-            pass
         json_data = None
 
         ## Is this a string if so; convert to json object
@@ -87,35 +80,7 @@ class MongoDB_server(dataChannel.dataChannel):
                 except:
                     print 'Error insert list'
             ##
-            try:
-                ## separate
-                ## if _type is a dict.. insert into Mongodb
-                if isinstance(_type, types.DictType):
-                    try:
-                        try:
-                            self.batch[self.collname].append(_type)
-                        except:
-                            self.batch[self.collname] = []
-                            self.batch[self.collname].append(_type)
-                        if self.batch[self.collname] > self['batch_len']:
-                            self.coll.insert(self.batch[self.collname])
-                    except:
-                        pass
-            except Exception, err:
-                print _type[k]
-                sys.stderr.write('Publishing_1 ERROR: %s\n' % str(err))
-                pass
-            except Exception, err:
-                pass
 
-            ## published the 'results' back to the front_end
-                try:
-                    channel.basic_publish(exchange='', routing_key=header_frame.reply_to, 
-                    properties=pika.BasicProperties(correlation_id=
-                                    header_frame.correlation_id), body=body)
-                except:
-                    pass;
-        self.reset_state()
         def timeout(self):
             print len(self.batch)
             if len(self.batch) > 0:
@@ -133,7 +98,7 @@ class MongoDB_server(dataChannel.dataChannel):
 
 
 ###  GenericServer(current server name,next server)
-mdbs = MongoDB_server("mongodb_server", "mongodb", 'mongodb,archiving')
+mdbs = MongoDB_server("mongodb_server", "tweets", 'mongodb,archiving')
 mdbs.connect()
 mdbs.connection = mdbs.get_connection()
 # gps.connection.ioloop.add_timeout(gps.state['watchdog_timer'],gps.timeout);
