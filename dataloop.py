@@ -1,0 +1,19 @@
+import pika
+import json
+import log_class
+
+
+## callback function for the consume
+def on_message(channel, method_frame, header_frame, body):
+	pass;
+
+L = log_class.Logger()
+connection = pika.BlockingConnection()
+channel = connection.channel()
+## listen to msq_q. When something comes in
+## do something with the data
+channel.basic_consume(on_message, 'msg_q')
+try:
+    channel.start_consuming()
+except KeyboardInterrupt:
+    channel.stop_consuming()
