@@ -7,7 +7,7 @@ class rabbitmonitor(threading.Thread):
 	def __init__(self):
 		threading.Thread.__init__ (self)
 		self.scheduler = sched.scheduler(time.time,time.sleep)
-		self.cl = Client("http://54.241.14.229:55672","guest","guest")
+		self.cl = Client("http://54.241.14.229","guest","guest")
 
 	def rabbit_stats(self):
 		exchanges = self.cl.get_exchanges()	
