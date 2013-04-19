@@ -1,5 +1,5 @@
 from twitter import * 
-import requests
+import grequests
 import json
 # see "Authentication" section below for tokens and keys
 
@@ -12,13 +12,17 @@ CONSUMER_SECRET ="kJ27v6yuibGGzzkjI8lnDaOBEcdwHEb4c8YV5fs"
 twitter_stream = TwitterStream(auth=OAuth(OAUTH_TOKEN, OAUTH_SECRET,
                        CONSUMER_KEY, CONSUMER_SECRET))
 iterator = twitter_stream.statuses.sample()
-
+msg_queue=[]
 for tweet in iterator:
 	try:
 		payload = json.dumps(tweet)
 		headers =  {'Content-type': 'application/json', 'Accept': 'text/plain'}	
-                r = requests.post("http://54.241.14.229/sensor/tweets/", data=payload,headers=headers)
+          	while(len(msg_queue) < 50): 
+			print tweet	
+			msg_queue.append(tweet)
+		r = ((grequests.post("http://54.241.14.229/sensor/tweets/", data=msg,headers=headers)) for msg in msg_queue) 
+		grequests.map(r)
+		msg_queue = []
 	except:
 		print 'error'
 		pass	
-
