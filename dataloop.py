@@ -5,6 +5,7 @@ import log_class
 
 ## callback function for the consume
 def on_message(channel, method_frame, header_frame, body):
+	print body 
 	pass;
 
 L = log_class.Logger()
@@ -12,7 +13,7 @@ connection = pika.BlockingConnection()
 channel = connection.channel()
 ## listen to msq_q. When something comes in
 ## do something with the data
-channel.basic_consume(on_message, 'msg_q')
+channel.basic_consume(on_message, 'amq.gen-QH-mWhSoWraOqtY0ST7Y2c',no_ack=True)
 try:
     channel.start_consuming()
 except KeyboardInterrupt:

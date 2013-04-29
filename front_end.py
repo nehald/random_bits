@@ -39,6 +39,9 @@ g_port = 0;
 
 cl = Client('localhost:55672', 'guest', 'guest')
 class MainHandler(tornado.web.RequestHandler):
+    def initialize(self,database):
+        self.mapper=Mapper() 
+        self.mapper.connect(None,"/{action_type}/{queue}") 
     def test(self):
         N = 2048 
         return(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N)))
@@ -48,17 +51,43 @@ class MainHandler(tornado.web.RequestHandler):
         self.write('Hello Uma webpage ')        
         self.write(str(uuid.uuid4()))        
         self.write(self.test())        
+        self.finish() 
     def post(self):
-	self.write("fdsfa")
+        self.finish()
 
 class SensorHandler(tornado.web.RequestHandler):
     """Uses an aysnchronous call to an RPC server to calculate fib(x).
     As with examples of asynchronous HTTP calls, this request will not finish
     until the remote response is received."""
+    def initialize(self,database):
+        self.mapper=Mapper() 
+        self.mapper.connect(None,"/{action}/{exchange}/{queue}") 
+        self.mapper.connect(None,"/{action}/{exchange}/") 
+   
     def get(self):
-	self.write("fdsaf") 
+	self.write("get")
+ 
     def post(self, number=''):
-	self.write("fdsfsa")
+        request = self.request
+        self.data = request.body
+       	result = self.mapper.match(request.uri) 
+	self.queue =''
+	try:
+		self.queue = result['queue']
+	except:
+		pass; 	
+	self.pika_client = self.application.settings.get('pika_client')
+        self.mq_ch = self.pika_client.channel
+        self.corr_id = str(uuid.uuid4())
+	self.exchange= result['exchange']
+        try:
+	    pub=self.mq_ch.basic_publish(exchange=self.exchange, routing_key=self.queue,body=self.data)
+            response={"Response":"Message sent"}
+            self.write(json.dumps(response))
+        except:
+	    response={"Reponse":"Error publishing msg to exchange"}
+            self.write(json.dumps(response))
+
 
 class PikaClient(object):
     """A modified class as described in pika's demo_tornado.py.
@@ -109,9 +138,22 @@ class PikaClient(object):
 
 def main():
     pika_client = PikaClient()
+    database={}
+    database['g'] = 'f'
+    database['gg'] = 'ff'
+    database['ggg'] = 'gff'
+    global g_port;
+    
     application = tornado.web.Application(
-    	[(r'/sensor/.*', SensorHandler),(r'/',MainHandler)],
-	**{'pika_client': pika_client})
+    [(r'/sensor/.*', SensorHandler,dict(database=database)),(r'/.*',MainHandler,dict(database=database))],
+#        [(r'/index.html',MainHandler)],
+#        [(r'/tom/*',SensorHandler),(r'/index.html',MainHandler)],
+#        **{'pika_client': pika_client, 'debug': True}
+
+        #     **{'pika_client': pika_client, 'debug': True}
+        #     [(r'/tom/*', Fib)],
+             **{'pika_client': pika_client, 'debug': True}
+    )
     try:
         port = int(sys.argv[1])  # $ python tornadoweb_pika.py 80
     except:
