@@ -14,17 +14,18 @@ class MongoDB_server(dataChannel.dataChannel):
     """MongoDB server listens to the specific queues and puts the incoming data
     into MongoDB.  Uses the state vector to determine:  the collection, the database
     timeout,etc.."""
-    def __init__(self, server_name='test',mq_exchange='', mq_queue = 'fooq',mq_host="localhost",tags="tags"):
-        dataChannel.dataChannel.__init__(self, server_name=server_name,mq_exchange=mq_exchange,mq_queue = mq_queue,mq_host=mq_host)
+    def __init__(self, server_name='test', mq_exchange='', mq_queue='fooq', mq_host="localhost", tags="tags"):
+        dataChannel.dataChannel.__init__(
+            self, server_name=server_name, mq_exchange=mq_exchange, mq_queue=mq_queue, mq_host=mq_host)
         self.batch = {}
         self.state = {}
-	self.conn = pymongo.Connection(host="localhost")
+        self.conn = pymongo.Connection(host="localhost")
         self.db = self.conn[mq_exchange]
         self.coll = self.db[server_name]
-	self.state["batch_len"] = 400
+        self.state["batch_len"] = 400
         self.state["watchdog_timer"] = 10
-        self.state["dbname"] =mq_exchange 
-        self.state["collname"] = server_name 
+        self.state["dbname"] = mq_exchange
+        self.state["collname"] = server_name
         self.default_state = copy.deepcopy(self.state)
         self.prev = {}
 
@@ -44,7 +45,7 @@ class MongoDB_server(dataChannel.dataChannel):
     def reset_state(self):
         try:
             self.state = copy.deepcopy(self.default_state)
-             
+
         except:
             print 'Error resetting state'
             sys.exit(-1)
@@ -58,7 +59,6 @@ class MongoDB_server(dataChannel.dataChannel):
             when a message arrives @ the message queue"""
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
         json_data = None
-	
 
         def timeout(self):
             print len(self.batch)
@@ -73,11 +73,12 @@ class MongoDB_server(dataChannel.dataChannel):
                 except Exception, err:
                     pass
             self.connection.add_timeout(
-            self.state['watchdog_timer'], self.timeout)
+                self.state['watchdog_timer'], self.timeout)
 
 
 ###  GenericServer(current server name,next server)
-mdbs = MongoDB_server("mongodb_server", "tweets", 'testq',"hackinista.com",'mongodb,archiving')
+mdbs = MongoDB_server("mongodb_server", mq_exchange="tweets",
+                      mq_queue='testq', mq_host="hackinista.com", tags='mongodb,archiving')
 mdbs.connect()
 mdbs.connection = mdbs.get_connection()
 # gps.connection.ioloop.add_timeout(gps.state['watchdog_timer'],gps.timeout);
