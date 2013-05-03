@@ -14,8 +14,8 @@ class MongoDB_server(dataChannel.dataChannel):
     """MongoDB server listens to the specific queues and puts the incoming data
     into MongoDB.  Uses the state vector to determine:  the collection, the database
     timeout,etc.."""
-    def __init__(self, server_name='test',mq_exchange='', mq_queue = 'fooq',mq_host="localhost",tags="tags"):
-        dataChannel.dataChannel.__init__(self, server_name=server_name,mq_exchange=mq_exchange,mq_queue = mq_queue,mq_host=mq_host)
+    def __init__(self, server_name='test',mq_exchange='', mq_host="localhost",tags="tags"):
+        dataChannel.dataChannel.__init__(self, server_name=server_name,mq_exchange=mq_exchange,mq_host=mq_host)
         self.batch = {}
         self.state = {}
 	self.conn = pymongo.Connection(host="localhost")
@@ -58,7 +58,26 @@ class MongoDB_server(dataChannel.dataChannel):
             when a message arrives @ the message queue"""
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
         json_data = None
-	
+
+        ## Is this a string if so; convert to json object
+        ## else determine what type of object
+        if isinstance(body, types.StringType):
+            ## what type of string is this.  json??
+            ## if it is .. determine what data structures inside
+            _type = json.loads(body)
+            if isinstance(_type, types.ListType):
+                try:
+                    ##
+                    ## what type of data is in the list
+                    if isinstance(_type[0], DictType):
+                        self.coll.insert(_type)
+                        new_return()
+                    else:
+                        print 'Content of list is not a dict and cannot be into mongodb'
+                        new_return()
+                except:
+                    print 'Error insert list'
+            ##
 
         def timeout(self):
             print len(self.batch)
@@ -77,7 +96,7 @@ class MongoDB_server(dataChannel.dataChannel):
 
 
 ###  GenericServer(current server name,next server)
-mdbs = MongoDB_server("mongodb_server", "tweets", 'testq',"hackinista.com",'mongodb,archiving')
+mdbs = MongoDB_server("mongodb_server", "tweets", "hackinista.com",'mongodb,archiving')
 mdbs.connect()
 mdbs.connection = mdbs.get_connection()
 # gps.connection.ioloop.add_timeout(gps.state['watchdog_timer'],gps.timeout);

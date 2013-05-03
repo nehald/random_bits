@@ -5,6 +5,7 @@ import time
 from pika.adapters.tornado_connection import TornadoConnection
 import types
 import log_class
+import logging
 # Detect if we're running in a git repo
 from os.path import exists, normpath
 if exists(normpath('../pika')):
@@ -19,19 +20,18 @@ from pika.connection import ConnectionParameters
 class dataChannel:
     """ The dataChannel is the base class of all our datasource.
     It's purpose is to: a).  Setup the queues"""
-    def __init__(self, server_name='test', mq_queue_exchange='', mq_host=''):
+    def __init__(self, server_name='test', mq_exchange='', mq_queue = '',mq_host=''):
         self.channel = None
         self.id = server_name
         self.queue_counter = 0
-        self.queue = ''
+        self.queue =mq_queue 
         self.routing_key = ''
-        self.exchange = mq_queue_exchange
+        self.exchange = mq_exchange
         self.connection = None
         self.connected = False
         self.connecting = False
         self.rabbithost = mq_host
-        self.L = log_class.Logger()
-
+	logging.getLogger('pika').setLevel(logging.DEBUG)
     def get_connection(self):
         return self.connection
 
@@ -40,7 +40,7 @@ class dataChannel:
             return
         self.connecting = True
         credentials = pika.PlainCredentials('guest', 'guest')
-        params = pika.ConnectionParameters(host=self.rabbithost,
+        params = pika.ConnectionParameters(host="hackinista.com",
                                            port=5672,
                                            virtual_host="/",
                                            credentials=credentials)
@@ -61,15 +61,7 @@ class dataChannel:
         self.connected = True
 
     def on_channel_open(self, channel):
-        self.channel = channel
-        if 
-        self.channel.exchange_declare(exchange=self.exchange,
-                                      type="direct", passive=True, 
-                                      auto_delete=False,
-                                      durable=True,
-                                      callback=self.on_exchange_declared)
-
-    def on_exchange_declared(self, frame):
+	self.channel = channel
         try:
             self.channel.queue_declare(queue=self.queue,
                                        auto_delete=False,
@@ -77,8 +69,8 @@ class dataChannel:
                                        exclusive=False,
                                        callback=self.on_queue_declared)
         except:
-            self.logger.warn("Error declaring queue = " + self.queue)
-            pass
+		print "Error declaring queue = " + self.queue
+           	sys.exit(-1) 
 
     def on_queue_declared(self, frame):
         try:
@@ -87,12 +79,14 @@ class dataChannel:
                                     routing_key=self.routing_key,
                                     callback=self.on_queue_bound)
         except:
-                self.logger.warn("Error binding to queue = " + self.queue)
+		print "Binding to queue = " + self.queue
                 pass
 
     def on_queue_bound(self, frame):
         self.channel.basic_consume(consumer_callback=self.handle_delivery,
                                    queue=self.queue, no_ack=False)
+
+
 
     def handle_delivery(self, channel, method_frame, header_frame, body):
         print "7...Basic.Deliver %s delivery-tag %i: %s" %\
@@ -105,10 +99,6 @@ class dataChannel:
     def data_op(self, args):
         print "Please implement get_data"
 
-    def basic_publisher(self, rk, data):
-        try:
-            self.channel.basic_publish(exchange=self.exchange, routing_key=rk,
-                                       body=data, properties='')
-        except:
-            print 'Error in basic_publisher'
-            pass
+#D = dataChannel(mq_exchange='tweets', mq_host='localhost')
+#D.connect()
+#D.connection.ioloop.start()
