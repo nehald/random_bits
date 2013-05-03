@@ -14,10 +14,11 @@ if exists(normpath('../pika')):
 from pika.adapters import SelectConnection
 from pika.connection import ConnectionParameters
 
+
 # We use these to hold our connection & channel
 
 
-class dataChannel:
+class dataChannel(object):
     """ The dataChannel is the base class of all our datasource.
     It's purpose is to: a).  Setup the queues"""
     def __init__(self, server_name='test', mq_exchange='', mq_queue = '',mq_host=''):

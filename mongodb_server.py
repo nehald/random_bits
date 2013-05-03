@@ -25,7 +25,7 @@ class MongoDB_server(dataChannel.dataChannel):
         self.state["batch_len"] = 400
         self.state["watchdog_timer"] = 10
         self.state["dbname"] = mq_exchange
-        self.state["collname"] = server_name
+        self.state["collname"] = server_name+"_"+mq_queue
         self.default_state = copy.deepcopy(self.state)
         self.prev = {}
 
@@ -54,26 +54,48 @@ class MongoDB_server(dataChannel.dataChannel):
         self.reset_state()
         return 0
 
+    def insert(self, val):
+        try:
+            obj_id = self.coll.save(val)
+            return obj_id
+        except:
+            print 'Error inserting data'
+            pass
+
     def handle_delivery(self, channel, method_frame, header_frame, body):
         """ the real meat of the code. handle_delivery is activated
             when a message arrives @ the message queue"""
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
         json_data = None
+        ## Is this a string if so; convert to json object
+        ## else determine what type of object
+        if isinstance(body, types.StringType):
+            ## what type of string is this.  json??
+            ## if it is .. determine what data structures inside
+            try:
+                _type = json.loads(body)
+            except:
+                print 'Failed in the json.loads'
+                pass
+            try:
+                self.batch.append(_type)
+                if len(self.batch) > self.state["batch_len"]:
+                    obj_ids = [self.insert(v) for v in self.batch]
+            except:
+                print 'Failed in insert'
+                pass
 
-        def timeout(self):
-            print len(self.batch)
-            if len(self.batch) > 0:
-                try:
-                    self.coll.insert(self.batch)
-                    self.batch = []
-                except Exception, err:
-                    print self.batch
-                    sys.stderr.write('Publishing_2 ERROR: %s\n' % str(err))
-                    pass
-                except Exception, err:
-                    pass
-            self.connection.add_timeout(
-                self.state['watchdog_timer'], self.timeout)
+    def timeout(self):
+        print 'timeout'
+        if len(self.batch) > 0:
+            try:
+                self.coll.insert(self.batch)
+                self.batch = []
+            except Exception, err:
+                sys.stderr.write('Publishing_2 ERROR: %s\n' % str(err))
+                pass
+            self.connection.add_timeout(self.state[
+                                        'watchdog_timer'], self.timeout)
 
 
 ###  GenericServer(current server name,next server)
@@ -81,5 +103,5 @@ mdbs = MongoDB_server("mongodb_server", mq_exchange="tweets",
                       mq_queue='testq', mq_host="hackinista.com", tags='mongodb,archiving')
 mdbs.connect()
 mdbs.connection = mdbs.get_connection()
-# gps.connection.ioloop.add_timeout(gps.state['watchdog_timer'],gps.timeout);
+mdbs.connection.add_timeout(mdbs.state['watchdog_timer'], mdbs.timeout)
 mdbs.connection.ioloop.start()
