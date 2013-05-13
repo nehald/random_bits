@@ -13,7 +13,7 @@ connection = pika.BlockingConnection()
 channel = connection.channel()
 ## listen to msq_q. When something comes in
 ## do something with the data
-channel.basic_consume(on_message, 'data',no_ack=True)
+channel.basic_consume(on_message, 'amq.gen-QH-mWhSoWraOqtY0ST7Y2c',no_ack=True)
 try:
     channel.start_consuming()
 except KeyboardInterrupt:
