@@ -19,7 +19,7 @@ for tweet in iterator:
 		headers =  {'Content-type': 'application/json', 'Accept': 'text/plain'}	
           	while(len(msg_queue) < 50): 
 			print tweet	
-			msg_queue.append(tweet)
+			msg_queue.append(payload)
 		r = ((grequests.post("http://54.241.14.229/sensor/tweets/", data=msg,headers=headers)) for msg in msg_queue) 
 		grequests.map(r)
 		msg_queue = []

@@ -17,12 +17,12 @@ class MongoDB_server(dataChannel.dataChannel):
     def __init__(self, server_name='test', mq_exchange='', mq_queue='fooq', mq_host="localhost", tags="tags"):
         dataChannel.dataChannel.__init__(
             self, server_name=server_name, mq_exchange=mq_exchange, mq_queue=mq_queue, mq_host=mq_host)
-        self.batch = {}
+        self.batch = []
         self.state = {}
         self.conn = pymongo.Connection(host="localhost")
         self.db = self.conn[mq_exchange]
         self.coll = self.db[server_name]
-        self.state["batch_len"] = 400
+        self.state["batch_len"] = 1000
         self.state["watchdog_timer"] = 10
         self.state["dbname"] = mq_exchange
         self.state["collname"] = server_name+"_"+mq_queue
@@ -65,7 +65,10 @@ class MongoDB_server(dataChannel.dataChannel):
     def handle_delivery(self, channel, method_frame, header_frame, body):
         """ the real meat of the code. handle_delivery is activated
             when a message arrives @ the message queue"""
-        channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+	try: 
+       		channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+	except:
+		print 'Error acking'
         json_data = None
         ## Is this a string if so; convert to json object
         ## else determine what type of object
@@ -80,17 +83,21 @@ class MongoDB_server(dataChannel.dataChannel):
             try:
                 self.batch.append(_type)
                 if len(self.batch) > self.state["batch_len"]:
-                    obj_ids = [self.insert(v) for v in self.batch]
-            except:
+               	    print 'trigger' 
+		    self.coll.insert(self.batch); 
+           	    self.batch=[]  
+	    except:
                 print 'Failed in insert'
                 pass
+	return 0; 
 
     def timeout(self):
         print 'timeout'
         if len(self.batch) > 0:
             try:
                 self.coll.insert(self.batch)
-                self.batch = []
+           	print 'batch insert' 
+	        self.batch = []
             except Exception, err:
                 sys.stderr.write('Publishing_2 ERROR: %s\n' % str(err))
                 pass
@@ -99,7 +106,7 @@ class MongoDB_server(dataChannel.dataChannel):
 
 
 ###  GenericServer(current server name,next server)
-mdbs = MongoDB_server("mongodb_server", mq_exchange="tweets",
+mdbs = MongoDB_server("mongodb_server2", mq_exchange="tweets",
                       mq_queue='testq', mq_host="hackinista.com", tags='mongodb,archiving')
 mdbs.connect()
 mdbs.connection = mdbs.get_connection()
