@@ -17,12 +17,18 @@ class rabbitmonitor(threading.Thread):
 			rabbit_data['time'] = time.time()
 			rabbit_data['exchanges'] = exchanges
 			rabbit_data['queues'] = queues
-			print rabbit_data
+			for q in rabbit_data['queues']:
+				## delete a tmp query with no consumer
+				## zombie queue
+				if "amq" in q['name'] and q['consumers'] == 0: 
+					vhost = q['vhost']					
+					self.cl.delete_queue(vhost,q['name']) 
 		except:
+			print 'error'
 			pass; 
 	def run(self):
 		while(1):	
-			self.scheduler.enter(2,1,self.rabbit_stats,());	
+			self.scheduler.enter(10,1,self.rabbit_stats,());	
 			self.scheduler.run()
 			
 r = rabbitmonitor()
