@@ -5,8 +5,7 @@ import sys
 import dataChannel
 import types
 import copy
-
-
+import log_class
 """MongoDB server"""
 
 
@@ -19,18 +18,17 @@ class MongoDB_server(dataChannel.dataChannel):
             self, server_name=server_name, mq_exchange=mq_exchange, mq_queue=mq_queue, mq_host=mq_host)
         self.batch = []
         self.state = {}
-        self.conn = pymongo.Connection(host="localhost")
+        self.conn = pymongo.Connection(host="data.hackinista.com")
         self.db = self.conn[mq_exchange]
         self.coll = self.db[server_name]
         self.state["batch_len"] = 1000
-        self.state["watchdog_timer"] = 10
+        self.state["watchdog_timer"] = 2
         self.state["dbname"] = mq_exchange
         self.state["collname"] = server_name+"_"+mq_queue
         self.default_state = copy.deepcopy(self.state)
         self.prev = {}
 
     def set_state(self, state):
-        ## list of state variables
         for s in state:
             key, val = (s.items()[0])
             self.state[key] = val
@@ -65,11 +63,12 @@ class MongoDB_server(dataChannel.dataChannel):
     def handle_delivery(self, channel, method_frame, header_frame, body):
         """ the real meat of the code. handle_delivery is activated
             when a message arrives @ the message queue"""
-	try: 
-       		channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-	except:
-		print 'Error acking'
+        try:
+            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+        except:
+            print 'Error acking'
         json_data = None
+        print 'ff'
         ## Is this a string if so; convert to json object
         ## else determine what type of object
         if isinstance(body, types.StringType):
@@ -83,21 +82,21 @@ class MongoDB_server(dataChannel.dataChannel):
             try:
                 self.batch.append(_type)
                 if len(self.batch) > self.state["batch_len"]:
-               	    print 'trigger' 
-		    self.coll.insert(self.batch); 
-           	    self.batch=[]  
-	    except:
+                    print 'trigger'
+                    self.coll.insert(self.batch)
+                    self.batch = []
+            except:
                 print 'Failed in insert'
                 pass
-	return 0; 
+        return 0
 
     def timeout(self):
         print 'timeout'
         if len(self.batch) > 0:
             try:
                 self.coll.insert(self.batch)
-           	print 'batch insert' 
-	        self.batch = []
+                print 'batch insert'
+                self.batch = []
             except Exception, err:
                 sys.stderr.write('Publishing_2 ERROR: %s\n' % str(err))
                 pass
@@ -105,10 +104,10 @@ class MongoDB_server(dataChannel.dataChannel):
                                         'watchdog_timer'], self.timeout)
 
 
-###  GenericServer(current server name,next server)
-mdbs = MongoDB_server("mongodb_server2", mq_exchange="tweets",
-                      mq_queue='testq', mq_host="hackinista.com", tags='mongodb,archiving')
-mdbs.connect()
-mdbs.connection = mdbs.get_connection()
-mdbs.connection.add_timeout(mdbs.state['watchdog_timer'], mdbs.timeout)
-mdbs.connection.ioloop.start()
+if __name__ == '__main__':
+    mdbs = MongoDB_server("mongodb_server2", mq_exchange="tweets",
+                          mq_queue='testq', mq_host="hackinista.com", tags='mongodb,archiving')
+    mdbs.connect()
+    mdbs.connection = mdbs.get_connection()
+    mdbs.connection.add_timeout(mdbs.state['watchdog_timer'], mdbs.timeout)
+    mdbs.connection.ioloop.start()

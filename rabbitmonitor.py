@@ -23,12 +23,13 @@ class rabbitmonitor(threading.Thread):
 				if "amq" in q['name'] and q['consumers'] == 0: 
 					vhost = q['vhost']					
 					self.cl.delete_queue(vhost,q['name']) 
+					print 'deleting queue'
 		except:
 			print 'error'
 			pass; 
 	def run(self):
 		while(1):	
-			self.scheduler.enter(10,1,self.rabbit_stats,());	
+			self.scheduler.enter(400,1,self.rabbit_stats,());	
 			self.scheduler.run()
 			
 r = rabbitmonitor()

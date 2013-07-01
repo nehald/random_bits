@@ -100,6 +100,6 @@ class dataChannel(object):
     def data_op(self, args):
         print "Please implement get_data"
 
-#D = dataChannel(mq_exchange='tweets', mq_host='localhost')
+#D = dataChannel(mq_exchange='amq.fanout', mq_host='localhost')
 #D.connect()
 #D.connection.ioloop.start()

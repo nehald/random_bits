@@ -30,8 +30,8 @@ class MongoDB_server(dataChannel.dataChannel):
             	channel.basic_ack(delivery_tag=method_frame.delivery_tag)
         except:
 		pass; 		
-	print body[0]
-
+	json_str = (json.loads(body)[0])
+	print json_str
 
     def timeout(self):
         print 'timeout'

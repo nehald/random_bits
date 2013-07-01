@@ -43,7 +43,7 @@ class MainHandler(tornado.web.RequestHandler):
         self.mapper=Mapper() 
         self.mapper.connect(None,"/{action_type}/{queue}") 
     def test(self):
-        N = 2048 
+        N = 4096 
         return(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N)))
     def get (self):
         self.write(str(g_port)) 
@@ -63,10 +63,11 @@ class SensorHandler(tornado.web.RequestHandler):
         self.mapper=Mapper() 
         self.mapper.connect(None,"/{action}/{exchange}/{queue}") 
         self.mapper.connect(None,"/{action}/{exchange}/") 
-   
+  	print 'fdd'  
     def get(self):
 	self.write("get")
- 
+        self.write(str(g_port)) 
+
     def post(self, number=''):
         request = self.request
         self.data = request.body
@@ -80,7 +81,8 @@ class SensorHandler(tornado.web.RequestHandler):
         self.mq_ch = self.pika_client.channel
         self.corr_id = str(uuid.uuid4())
 	self.exchange= result['exchange']
-        try:
+       	## does exchange and queue exist
+	try:
 	    pub=self.mq_ch.basic_publish(exchange=self.exchange, routing_key=self.queue,body=self.data)
             response={"Response":"Message sent"}
             self.write(json.dumps(response))
@@ -139,9 +141,7 @@ class PikaClient(object):
 def main():
     pika_client = PikaClient()
     database={}
-    database['g'] = 'f'
-    database['gg'] = 'ff'
-    database['ggg'] = 'gff'
+    database['0xdead'] = 'beef'
     global g_port;
     
     application = tornado.web.Application(

@@ -15,6 +15,6 @@ class Logger:
          tb_out.close();
 
 
-def main():         
-    L = Logger()
-    L.logger.warn("fdsafsd\n\n")
+#def main():         
+#    L = Logger()
+#    L.logger.warn("fdsafsd\n\n")
