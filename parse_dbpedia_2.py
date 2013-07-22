@@ -1,42 +1,24 @@
-from bulbs.neo4jserver import Graph
-from py2neo import neo4j,node,rel 
-
-
-def connect():
-    try:
-        gdb = neo4j.GraphDatabaseService('http://localhost:7474/db/data/')
-	gdb.clear()
-    except rest.ResourceNotFound:
-        print 'Database service not found'
-    return gdb
-
-##def batch_create(index, 
+from bulbs.neo4jserver import *
 ## input the dbpedia dataset
 def parse_dbpedia(fname): 
-	batch = neo4j.WriteBatch(g)
-	f =  open(fname);
+        f =  open(fname);
 	## skip the first comment line
 	f.readline()
-	
 	old_nodename = ""
+	node1=None
+	node2=None
         try:
 		for line in f:	
 			fsplit =line.split(" ")
 			if len(fsplit) == 4:
                 		vals = [fsplit[i].split("/")[4][:-1] for i in range(0,3)]
 				if vals[0] != old_nodename:
-					try:	
-						if len(batch) > 0:	
-							nodes = batch.submit()
-							batch.clear()
-							for i in nodes:
-								batch.create(rel(nodes[0],"knows",i)) 
-							batch.submit()		
-					except:
-						print 'Batch Submit Error'
-					print "Changing node from ",old_nodename+" to "+ vals[0]
-					batch.create(node({"name":vals[0]}))	
-				batch.create(node({"name":vals[2]}))
+					print "changing node from ",old_nodename+" to "+ vals[0]
+					node1 = g.vertices.create({'name':vals[0]})
+				node2 = g.vertices.create({'name':vals[2]})
+				#print vals[0]+"-----> "+vals[2] +"\n"
+				edge = g.edges.create(node1,"wikilinks",node2);
+				edge = g.edges.create(node2,"wikilinks",node1);
 				old_nodename = vals[0]
         except:
                 print "Unable to parse string"
@@ -59,10 +41,8 @@ def parse_dbpedia(fname):
 
 
 ## create the Graph
-#g = Graph()
-#g.clear()
-g=connect()
-
+g = Graph()
+g.clear()
 ## down page_links_en.nt from dpedia site
 #parse_dbpedia("/mnt/page_links_en.nt")  
 parse_dbpedia("/tmp/test_output.nt")  
