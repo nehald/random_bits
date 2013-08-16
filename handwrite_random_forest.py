@@ -33,11 +33,14 @@ def read_and_clean(fname):
 # simple version of the code above.. Used to read
 # trainLabel.csv, which is just a single column of numbers
 def read_and_clean_simple(fname):
+    data=[]
+    fp = open(fname,"r")
+    headerline = fp.readline() 
     try:
-        data = numpy.array([int(i) for i in open(fname, "r").readlines()])
-        return data
+        data.append(convert_to_array([float(i) for i in fp.readlines()])) 
     except:
         pass
+     return data; 
 # send in data of the form
 # 2.8089094884322816,-0.2428941541280098,-0.54642134078742799,
 # 0.25516185655651813,...,.. (N items per row)
@@ -46,10 +49,10 @@ def read_and_clean_simple(fname):
 training_array,training_label = read_and_clean("handwrite_train.csv")
 
 clf = svm.SVC()
-clf.fit(training_array, training_label)
+clf.fit(training_array[0:100], training_label[0:100])
 
 # next we predict
-predict = clf.predict(read_and_clean('handwrite_test.csv'))
+predict = clf.predict(read_and_clean_simple('handwrite_test.csv'))
 
 # save it to file
-numpy.savetxt("submit.csv", predict.astype(int), fmt='%d', delimiter=",")
+#numpy.savetxt("submit.csv", predict.astype(int), fmt='%d', delimiter=",")
