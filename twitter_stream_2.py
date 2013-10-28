@@ -17,11 +17,7 @@ for tweet in iterator:
 	try:
 		payload = json.dumps(tweet)
 		headers =  {'Content-type': 'application/json', 'Accept': 'text/plain'}	
-		msg_queue.append(payload)
-		if len(msg_queue) > 50:	
-			r = ((grequests.post("http://54.241.14.229/sensor/tweets/", data=msg,headers=headers)) for msg in msg_queue) 
-			grequests.map(r)
-			msg_queue = []
+		print tweet
 	except:
 		print 'error'
 		pass	
